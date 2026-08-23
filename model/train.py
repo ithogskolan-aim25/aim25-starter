@@ -329,7 +329,16 @@ def main() -> None:
 # LIMITATIONS -- read before extending
 # --------------------------------------------------------------------------
 # Known problems with this baseline, roughly in the order they will hurt you.
-# Fixing these IS the project; none of them are traps, they are the work.
+# You are not asked to train a better model -- the model itself is given (see
+# the project brief, section 9). But most of what's below is exactly the kind
+# of real-data problem that only shows up once you wrap a live, scheduled
+# pipeline around this model instead of running it once against a static CSV
+# -- which weather endpoint to call, how to handle a live feed's gaps and
+# quality flags, a mid-series definitional break. Handling that IS the
+# project: it is component A/B's job, not out-of-scope model research. #5 and
+# #6 below are the two closer to genuine modeling choices, and even there the
+# ask is to notice the tradeoff and document it, not to out-engineer this
+# baseline.
 #
 # 1. Tomorrow's weather is the observed truth, not a forecast. In production
 #    you must call SMHI's forecast API instead, and your accuracy will drop.
