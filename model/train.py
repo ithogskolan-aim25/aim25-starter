@@ -2,9 +2,8 @@
 Baseline training pipeline: predict tomorrow's electricity price.
 
 This is the script your team's training pipeline (project component B) grows
-out of. It works as-is. It is not good. Read the LIMITATIONS section at the
-bottom before you decide what to change first -- several of the shortcuts
-here are the exact ones the project asks you to fix.
+out of. It works as-is. It is very not good. Read the LIMITATIONS section at the
+bottom for more information.
 
 Run it:
 
