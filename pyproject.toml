@@ -12,6 +12,8 @@ dependencies = [
     "matplotlib>=3.8",
     "duckdb>=1.0",
     "psycopg2-binary>=2.9",
+    "fastapi>=0.115",
+    "uvicorn>=0.30"
 ]
 
 [project.optional-dependencies]
@@ -19,8 +21,6 @@ dependencies = [
 notebook = ["jupyter>=1.0", "ipykernel>=6.29"]
 # Från vecka 5, för modellregistret.
 hub = ["huggingface-hub>=0.24"]
-# Från vecka 6, om ni väljer att bygga inferenstjänsten här i repot.
-api = ["fastapi>=0.115", "uvicorn>=0.30"]
 # CI: lint och test.
 dev = ["ruff>=0.6", "pytest>=8.0"]
 
