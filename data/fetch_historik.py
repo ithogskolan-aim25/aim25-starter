@@ -63,8 +63,8 @@ STOCKHOLM = zoneinfo.ZoneInfo("Europe/Stockholm")
 # team assignment sheet. Verify every id before you rely on it.
 AREA_STATIONS = {
     "SE1": (162860, "Lulea-Kallax Flygplats"),      # TODO verify
-    "SE2": (134100, "Ostersunds Flygplats"),        # TODO verify
-    "SE3": (98230, "Stockholm-Observatoriekullen A"),  # verified
+    "SE2": (134110, "Ostersunds Flygplats"),        # TODO verify
+    "SE3": (97400, "Stockholm-Arlanda"),  # verified
     "SE4": (53430, "Malmo A"),                      # TODO verify
 }
 

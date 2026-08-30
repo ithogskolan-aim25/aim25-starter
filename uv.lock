@@ -643,6 +643,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
+    { name = "fastapi" },
     { name = "matplotlib" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -651,13 +652,10 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "requests" },
     { name = "scikit-learn" },
+    { name = "uvicorn" },
 ]
 
 [package.optional-dependencies]
-api = [
-    { name = "fastapi" },
-    { name = "uvicorn" },
-]
 dev = [
     { name = "pytest" },
     { name = "ruff" },
@@ -673,7 +671,7 @@ notebook = [
 [package.metadata]
 requires-dist = [
     { name = "duckdb", specifier = ">=1.0" },
-    { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.115" },
+    { name = "fastapi", specifier = ">=0.115" },
     { name = "huggingface-hub", marker = "extra == 'hub'", specifier = ">=0.24" },
     { name = "ipykernel", marker = "extra == 'notebook'", specifier = ">=6.29" },
     { name = "jupyter", marker = "extra == 'notebook'", specifier = ">=1.0" },
@@ -686,9 +684,9 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
     { name = "scikit-learn", specifier = ">=1.5" },
-    { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.30" },
+    { name = "uvicorn", specifier = ">=0.30" },
 ]
-provides-extras = ["notebook", "hub", "api", "dev"]
+provides-extras = ["notebook", "hub", "dev"]
 
 [[package]]
 name = "executing"
