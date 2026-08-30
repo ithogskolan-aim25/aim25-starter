@@ -62,10 +62,10 @@ STOCKHOLM = zoneinfo.ZoneInfo("Europe/Stockholm")
 # Keep this table in sync with generate_synthetic_historik.py and with the
 # team assignment sheet. Verify every id before you rely on it.
 AREA_STATIONS = {
-    "SE1": (162860, "Lulea-Kallax Flygplats"),      # TODO verify
-    "SE2": (134110, "Ostersunds Flygplats"),        # TODO verify
-    "SE3": (97400, "Stockholm-Arlanda"),  # verified
-    "SE4": (53430, "Malmo A"),                      # TODO verify
+    "SE1": (162860, "Lulea-Kallax Flygplats"),
+    "SE2": (134110, "Ostersunds Flygplats"),
+    "SE3": (97400, "Stockholm-Arlanda"), 
+    "SE4": (53300, "Malmo Sturup"),      
 }
 
 SESSION = requests.Session()
