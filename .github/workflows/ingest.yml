@@ -1,4 +1,4 @@
-name: daily ingest (throwaway test)
+name: daily ingest
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-      - run: uv run python daily_ingest_throwaway.py --days 7
+      - run: uv run python daily_ingest_reference.py
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PRICE_AREA: ${{ vars.PRICE_AREA }}

@@ -52,8 +52,8 @@ STOCKHOLM = zoneinfo.ZoneInfo("Europe/Stockholm")
 # Keep this in sync with the same table in data/fetch_historik.py.
 AREA_STATIONS = {
     "SE1": (162860, "Lulea-Kallax Flygplats"),
-    "SE2": (134100, "Ostersunds Flygplats"),
-    "SE3": (98230, "Stockholm-Observatoriekullen A"),
+    "SE2": (134110, "Ostersund"),
+    "SE3": (97400, "Stockholm"),
     "SE4": (53430, "Malmo A"),
 }
 
