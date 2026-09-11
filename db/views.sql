@@ -54,6 +54,19 @@ FROM latest AS l,
 -- ---------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW stg__weather AS
+WITH normalised AS (
+    SELECT
+        station,
+        CASE parameter
+            WHEN 'temperature' THEN '1'
+            WHEN 'wind' THEN '4'
+            ELSE parameter
+        END AS parameter,
+        observed_at,
+        data,
+        ingestion_timestamp
+    FROM raw__weather
+)
 SELECT DISTINCT ON (station, parameter, observed_at)
        station,
        parameter,
@@ -61,7 +74,7 @@ SELECT DISTINCT ON (station, parameter, observed_at)
        (data ->> 'value')::numeric AS value,
        data ->> 'quality'          AS quality,
        ingestion_timestamp
-FROM raw__weather
+FROM normalised
 ORDER BY station, parameter, observed_at, ingestion_timestamp DESC;
 
 -- ---------------------------------------------------------------------------

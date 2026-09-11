@@ -644,6 +644,7 @@ source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
     { name = "fastapi" },
+    { name = "huggingface-hub" },
     { name = "matplotlib" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -672,6 +673,7 @@ notebook = [
 requires-dist = [
     { name = "duckdb", specifier = ">=1.0" },
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "huggingface-hub", specifier = ">=1.28.0" },
     { name = "huggingface-hub", marker = "extra == 'hub'", specifier = ">=0.24" },
     { name = "ipykernel", marker = "extra == 'notebook'", specifier = ">=6.29" },
     { name = "jupyter", marker = "extra == 'notebook'", specifier = ">=1.0" },
