@@ -4,8 +4,9 @@ Example implementation of the daily ingestion pipeline.
 Env: DATABASE_URL, PRICE_AREA.
 """
 
+
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import psycopg2
 import psycopg2.extras
@@ -18,8 +19,21 @@ AREA_STATION = {
     "SE3": 97400,
 }
 
+AREA_COORDS = {
+    "SE1": (65.5435, 22.1219),
+    "SE2": (63.1792, 14.6357),
+    "SE3": (59.3417, 18.0549),
+}
+
 PARAM_TEMP = "1"
 PARAM_WIND = "4"
+
+# New endpoint for forecast data. Needs to be added to the database schema.
+SMHI_FORECAST_URL = (
+    "https://opendata-download-metfcst.smhi.se/api/category/snow1g/version/1"
+    "/geotype/point/lon/{lon}/lat/{lat}/data.json"
+    "?parameters=air_temperature,wind_speed"
+)
 
 # --------------------------------------------------------------------------
 # Ingest one day of prices.
@@ -97,6 +111,40 @@ def ingest_weather(conn, area: str, day: date) -> int:
     return written
 
 
+def ingest_forecast(conn, area: str) -> int:
+    now = datetime.now(timezone.utc)
+    lat, lon = AREA_COORDS[area]
+    response = requests.get(
+        SMHI_FORECAST_URL.format(lat=lat, lon=lon), timeout=15
+    )
+    response.raise_for_status()
+
+    rows = []
+    for point in response.json()["timeSeries"]:
+        valid_at = datetime.fromisoformat(point["time"].replace("Z", "+00:00"))
+        if valid_at <= now:
+            continue
+
+        rows.append((
+            f"forecast:{area}",
+            "forecast",
+            valid_at,
+            psycopg2.extras.Json(point),
+        ))
+
+    with conn.cursor() as cur:
+        psycopg2.extras.execute_values(
+            cur,
+            """
+            INSERT INTO raw__weather (station, parameter, observed_at, data)
+            VALUES %s
+            """,
+            rows,
+        )
+    conn.commit()
+    return len(rows)
+
+
 def days_back(n: int) -> list[date]:
     '''
     Return a list of dates from today back to n days ago.
@@ -113,14 +161,17 @@ def main() -> None:
     written = 0
     n_days = 7
     for day in days_back(n_days):
-        try:
-            n_prices = ingest_prices(conn, area, day)
-            n_weather = ingest_weather(conn, area, day)
-        except Exception as exc:
-            print(f"  {day}  FAILED: {exc}")
-            continue
-        print(f"  {day}  prices={n_prices}  weather={n_weather}")
+        n_prices = ingest_prices(conn, area, day)
+        n_weather = ingest_weather(conn, area, day)  # metobs, historik
         written += n_prices + n_weather
+
+    n_forecast = ingest_forecast(conn, area)  # metfcst, framtida tider
+    written += n_forecast
+
+    written += n_prices + n_weather
+
+    n_forecast = ingest_forecast(conn, area)  # metfcst, framtida tider
+    written += n_forecast
 
     conn.close()
 
