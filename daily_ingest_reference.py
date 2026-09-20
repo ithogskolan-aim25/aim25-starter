@@ -6,7 +6,7 @@ Env: DATABASE_URL, PRICE_AREA.
 
 
 import os
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 import psycopg2
 import psycopg2.extras
@@ -91,15 +91,15 @@ def ingest_weather(conn, area: str, day: date) -> int:
             raise ValueError(f"unexpected weather payload shape: {list(payload)[:5]}")
 
         # SMHI's timestamps are epoch milliseconds, not ISO strings.
-        from datetime import datetime, timezone
+        from datetime import datetime
         rows = [
             v for v in payload["value"]
-            if datetime.fromtimestamp(v["date"] / 1000, tz=timezone.utc).date() == day
+            if datetime.fromtimestamp(v["date"] / 1000, tz=UTC).date() == day
         ]
 
         with conn.cursor() as cur:
             for v in rows:
-                observed_at = datetime.fromtimestamp(v["date"] / 1000, tz=timezone.utc)
+                observed_at = datetime.fromtimestamp(v["date"] / 1000, tz=UTC)
                 cur.execute(
                     "INSERT INTO raw__weather (station, parameter, observed_at, data) "
                     "VALUES (%s, %s, %s, %s)",
@@ -112,7 +112,7 @@ def ingest_weather(conn, area: str, day: date) -> int:
 
 
 def ingest_forecast(conn, area: str) -> int:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     lat, lon = AREA_COORDS[area]
     response = requests.get(
         SMHI_FORECAST_URL.format(lat=lat, lon=lon), timeout=15

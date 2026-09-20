@@ -67,8 +67,7 @@ def main():
             missing = series[series.isna()].index
             pct = 100 * len(missing) / len(grid)
             runs = gaps(missing)
-            longest = max((e - s + pd.Timedelta(hours=1) for s, e in runs),
-                          default=pd.Timedelta(0))
+
 
             print(f"  {param:<16} missing {pct:5.1f}% of {len(grid):,} hours", end="")
 
@@ -111,7 +110,7 @@ def main():
         print('  uv run python data/fetch_historik.py --find-station "Stockholm"')
         return 1
     if warned:
-        print(f"USABLE, but read the marked lines: something is missing inside the")
+        print("USABLE, but read the marked lines: something is missing inside the")
         print(f"last {RECENT_DAYS} days. You cannot fix that by switching station —")
         print("decide how you handle it when you build features, and write it down.")
         return 0
