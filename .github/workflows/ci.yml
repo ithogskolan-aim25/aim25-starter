@@ -7,5 +7,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v7
-      - run: uv run ruff check .
-      - run: uv run pytest -q
+      - run: uv sync --frozen --extra dev
+      - run: uv run --extra dev ruff check .
+      - run: uv run --extra dev pytest -q
