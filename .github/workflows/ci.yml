@@ -6,6 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v8
-      - run: uv run ruff check .
-      - run: uv run pytest -q
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --frozen --extra dev
+      - run: uv run --extra dev ruff check .
+      - run: uv run --extra dev pytest -q

@@ -113,7 +113,7 @@ def load_weather(conn, station=None):
     if df.empty:
         raise SystemExit(f"No rows for station {station}. In the file: {present}")
 
-    for param, column in PARAMETERS.items():
+    for _param, column in PARAMETERS.items():
         if df[column].isna().all():
             raise SystemExit(
                 f"{column} is empty for station {station}. Run "
@@ -129,7 +129,7 @@ def load_weather(conn, station=None):
             records.append((
                 str(station),
                 param,
-                getattr(row, "observed_at"),
+                row.observed_at,
                 json.dumps(build_weather_payload(
                     getattr(row, column), row.Kvalitet, row.observed_at)),
             ))
