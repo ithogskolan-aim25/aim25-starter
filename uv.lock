@@ -650,17 +650,15 @@ dependencies = [
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pandas" },
     { name = "psycopg2-binary" },
+    { name = "pytest" },
     { name = "python-dotenv" },
     { name = "requests" },
+    { name = "ruff" },
     { name = "scikit-learn" },
     { name = "uvicorn" },
 ]
 
 [package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "ruff" },
-]
 hub = [
     { name = "huggingface-hub" },
 ]
@@ -681,14 +679,14 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "psycopg2-binary", specifier = ">=2.9" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest", specifier = ">=8.0" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "requests", specifier = ">=2.32" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
+    { name = "ruff", specifier = ">=0.6" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "uvicorn", specifier = ">=0.30" },
 ]
-provides-extras = ["notebook", "hub", "dev"]
+provides-extras = ["notebook", "hub"]
 
 [[package]]
 name = "executing"
