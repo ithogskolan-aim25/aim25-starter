@@ -27,6 +27,10 @@ PRICE_AREA = os.environ["PRICE_AREA"]
 PARAM_TEMP = "1"
 PARAM_WIND = "4"
 
+# How the daily ingest keys forecast rows in raw__weather. If your ingestion
+# stores them under the SMHI station number instead, change this one line.
+FORECAST_STATION = f"forecast:{PRICE_AREA}"
+
 
 def load_prices_db(conn, area: str) -> pd.DataFrame:
     """Read staged price intervals in the shape daily_price_table() expects."""
@@ -82,6 +86,83 @@ def load_weather_db(conn, station: int) -> pd.DataFrame:
     weather["ts_local"] = weather["ts_utc"].dt.tz_convert(STOCKHOLM)
     weather["date_local"] = weather["ts_local"].dt.date
     return weather.sort_values("ts_utc").reset_index(drop=True)
+
+
+def load_forecast_db(conn, station: str) -> pd.DataFrame:
+    """Daily aggregates of the weather FORECAST, one row per local date.
+
+    Same shape as daily_weather_table(), so the two are interchangeable in
+    the join below. As with the prices, no assumption is made about how many
+    points a day has: the forecast is dense for the next few days and gets
+    sparse further out, so aggregating over whatever exists is the only
+    formula that stays correct.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT observed_at, temp_c, wind_ms
+            FROM stg__forecast
+            WHERE station = %s
+            ORDER BY observed_at
+            """,
+            (station,),
+        )
+        rows = cur.fetchall()
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows, columns=["valid_at", "temp_c", "wind_ms"])
+    df[["temp_c", "wind_ms"]] = df[["temp_c", "wind_ms"]].astype(float)
+    df["ts_local"] = pd.to_datetime(df["valid_at"], utc=True).dt.tz_convert(STOCKHOLM)
+    df["date_local"] = df["ts_local"].dt.date
+
+    grouped = df.groupby("date_local")
+    daily = pd.DataFrame(
+        {
+            "temp_mean": grouped["temp_c"].mean(),
+            "temp_min": grouped["temp_c"].min(),
+            "temp_max": grouped["temp_c"].max(),
+            "wind_mean": grouped["wind_ms"].mean(),
+        }
+    )
+    daily.index = pd.to_datetime(daily.index)
+    return daily.sort_index()
+
+
+def fill_tomorrow_from_forecast(features: pd.DataFrame, forecast: pd.DataFrame) -> int:
+    """Fill tomorrow_* where shifting the observations left a hole.
+
+    build_features() derives tomorrow's weather by shifting OBSERVED weather
+    back one day. For the newest row there is no next day to shift from, so
+    those four columns are always NULL -- which is exactly the row you want
+    to predict. This fills them from the forecast instead.
+
+    Read this before trusting the result: the historical rows keep observed
+    truth in tomorrow_*, and only the rows a forecast can reach get a
+    forecast. The model is therefore trained on one thing and served
+    another, and a forecast has error in it that the observation does not.
+    That gap is real and it is not measured here. Quantifying it -- score
+    the same days both ways once the forecast archive is deep enough -- is
+    the honest next step, and the reason this function returns a count
+    rather than filling silently.
+    """
+    if forecast.empty:
+        return 0
+
+    filled = 0
+    for col in ("temp_mean", "temp_min", "temp_max", "wind_mean"):
+        target = f"tomorrow_{col}"
+        # Row D describes the day before target_date, so the weather wanted
+        # for that row is the forecast valid on D + 1.
+        wanted = forecast[col].reindex(features.index + pd.Timedelta(days=1))
+        wanted.index = features.index
+
+        gaps = features[target].isna()
+        features.loc[gaps, target] = wanted[gaps]
+        filled += int((gaps & wanted.notna()).sum())
+
+    return filled
 
 
 def write_features(conn, area: str, features: pd.DataFrame) -> int:
@@ -162,6 +243,10 @@ def refresh_daily_features(conn, area: str) -> int:
     daily_prices = daily_price_table(prices)
     daily_weather = daily_weather_table(weather)
     features = build_features(daily_prices, daily_weather)
+
+    forecast = load_forecast_db(conn, FORECAST_STATION)
+    n_filled = fill_tomorrow_from_forecast(features, forecast)
+    print(f"filled {n_filled} tomorrow_* values from the forecast")
 
     return write_features(conn, area, features)
 
