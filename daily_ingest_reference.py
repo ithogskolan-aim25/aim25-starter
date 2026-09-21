@@ -168,11 +168,6 @@ def main() -> None:
     n_forecast = ingest_forecast(conn, area)  # metfcst, framtida tider
     written += n_forecast
 
-    written += n_prices + n_weather
-
-    n_forecast = ingest_forecast(conn, area)  # metfcst, framtida tider
-    written += n_forecast
-
     conn.close()
 
     # Data quality question 1, "did it arrive?"
