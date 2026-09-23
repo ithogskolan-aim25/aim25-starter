@@ -1,5 +1,6 @@
-import numpy as np
 import pickle
+
+import numpy as np
 
 model_object = pickle.load(open('model/model.pkl', 'rb'))
 model = model_object['model']
