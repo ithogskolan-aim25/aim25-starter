@@ -37,7 +37,7 @@ import psycopg2
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from huggingface_hub import hf_hub_download
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import Json, RealDictCursor
 
 load_dotenv()
 
@@ -124,6 +124,39 @@ def feature_row(target_date: date) -> dict | None:
         conn.close()
 
 
+def log_prediction(row: dict, prediction: float, feature_values: dict) -> int:
+    """Persist the exact numeric inputs supplied to the model before responding."""
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO pred__log (
+                    price_area, target_date, y_hat, model_repo, model_revision,
+                    feature_built_at, features
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING prediction_id
+                """,
+                (
+                    PRICE_AREA,
+                    row["target_date"],
+                    prediction,
+                    os.environ["HF_MODEL_REPO"],
+                    HF_REVISION,
+                    row["built_at"],
+                    Json(feature_values),
+                ),
+            )
+            prediction_id = cur.fetchone()[0]
+        conn.commit()
+        return prediction_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 # --------------------------------------------------------------------------
 # endpoints
 # --------------------------------------------------------------------------
@@ -163,6 +196,12 @@ def predict(target_date: date | None = None) -> dict:
     features = PAYLOAD["features"]
     X = pd.DataFrame([{name: row[name] for name in features}]).astype(float)
     prediction = float(PAYLOAD["model"].predict(X)[0])
+    snapshot = {
+        name: None if pd.isna(X.at[0, name]) else float(X.at[0, name])
+        for name in features
+    }
+    # A failed insert is an error, not an unlogged successful prediction.
+    prediction_id = log_prediction(row, prediction, snapshot)
 
     return {
         "price_area": PRICE_AREA,
@@ -178,4 +217,5 @@ def predict(target_date: date | None = None) -> dict:
         # a second query.
         "actual_sek_per_kwh": row["y"],
         "model_revision": HF_REVISION,
+        "prediction_id": prediction_id,
     }
