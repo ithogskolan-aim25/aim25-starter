@@ -6,8 +6,8 @@ Copy this file into the course repository as api/main_realtime.py and run:
     curl localhost:8000/predict
 
 Requires HF_MODEL_REPO, DATABASE_URL and optionally PRICE_AREA (default SE3),
-HF_TOKEN (private models). No feat__daily or stg__forecast is used. This
-example intentionally does not write prediction logs.
+HF_TOKEN (private models). Requires pred__log from prediction_log/pred_log.sql.
+No feat__daily or stg__forecast is used.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from huggingface_hub import hf_hub_download
+from psycopg2.extras import Json
 
 load_dotenv()
 
@@ -206,6 +207,35 @@ def build_live_features(target: date, prices: dict[date, dict], weather: dict) -
     }
 
 
+def log_prediction(target: date, prediction: float, inputs: pd.DataFrame) -> int:
+    """Persist the exact numeric row passed to model.predict before serving it."""
+    snapshot = {name: float(inputs.iloc[0][name]) for name in inputs.columns}
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO pred__log (
+                    price_area, target_date, y_hat, model_repo, model_revision,
+                    feature_built_at, features
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING prediction_id
+                """,
+                (
+                    PRICE_AREA, target, prediction, os.environ["HF_MODEL_REPO"],
+                    HF_REVISION, None, Json(snapshot),
+                ),
+            )
+            prediction_id = cur.fetchone()[0]
+        conn.commit()
+        return prediction_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 @app.get("/health")
 def health() -> dict:
     return {
@@ -246,8 +276,13 @@ def predict(target_date: date | None = None) -> dict:
         prediction = float(PAYLOAD["model"].predict(X)[0])
     except (psycopg2.Error, requests.RequestException, KeyError, TypeError, ValueError) as exc:
         raise HTTPException(503, f"Prediction inputs unavailable: {exc}") from exc
+    try:
+        prediction_id = log_prediction(target, prediction, X)
+    except (psycopg2.Error, KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(503, f"Prediction logging failed: {exc}") from exc
     anchor = target - timedelta(days=1)
     return {
+        "prediction_id": prediction_id,
         "price_area": PRICE_AREA,
         "target_date": target,
         "target": PAYLOAD["target"],
