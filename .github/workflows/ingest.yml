@@ -17,3 +17,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PRICE_AREA: ${{ vars.PRICE_AREA }}
+      - run: uv run python feature_pipeline_reference.py
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PRICE_AREA: ${{ vars.PRICE_AREA }}
