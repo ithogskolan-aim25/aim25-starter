@@ -217,13 +217,13 @@ def log_prediction(target: date, prediction: float, inputs: pd.DataFrame) -> int
                 """
                 INSERT INTO pred__log (
                     price_area, target_date, y_hat, model_repo, model_revision,
-                    feature_built_at, features
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    feature_built_at, features, code_revision
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING prediction_id
                 """,
                 (
                     PRICE_AREA, target, prediction, os.environ["HF_MODEL_REPO"],
-                    HF_REVISION, None, Json(snapshot),
+                    HF_REVISION, None, Json(snapshot), os.getenv("RENDER_GIT_COMMIT") or None,
                 ),
             )
             prediction_id = cur.fetchone()[0]

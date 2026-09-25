@@ -133,8 +133,8 @@ def log_prediction(row: dict, prediction: float, feature_values: dict) -> int:
                 """
                 INSERT INTO pred__log (
                     price_area, target_date, y_hat, model_repo, model_revision,
-                    feature_built_at, features
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    feature_built_at, features, code_revision
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING prediction_id
                 """,
                 (
@@ -145,6 +145,7 @@ def log_prediction(row: dict, prediction: float, feature_values: dict) -> int:
                     HF_REVISION,
                     row["built_at"],
                     Json(feature_values),
+                    os.getenv("RENDER_GIT_COMMIT") or None,
                 ),
             )
             prediction_id = cur.fetchone()[0]
