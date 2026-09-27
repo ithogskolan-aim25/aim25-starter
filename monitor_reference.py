@@ -88,9 +88,8 @@ STORE_SQL = """
 def store(conn, rows: list[dict]) -> int:
     """Write the grades to monitor__daily, one row per scored day.
 
-    error, abs_error and naive_abs_error are not inserted: they are
-    generated columns, so the arithmetic lives in the schema and cannot
-    drift away from what this script believes it computed.
+    error, abs_error and naive_abs_error are not inserted because they are
+    generated columns.
     """
     if not rows:
         return 0
@@ -117,8 +116,6 @@ def main() -> None:
     finally:
         conn.close()
 
-    # No rows is not an error, but it is not nothing either: it usually means
-    # the prediction service did not run before the day it was predicting.
     if not rows:
         print("no scored days -- no prediction was made before its target date")
         return
