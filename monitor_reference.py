@@ -32,6 +32,7 @@ import os
 
 import psycopg2
 from dotenv import load_dotenv
+from psycopg2.extras import execute_values
 
 load_dotenv()
 
@@ -57,11 +58,18 @@ daily_prices AS (
 scored AS (
     SELECT
         p.price_area, p.target_date, p.prediction_id, p.predicted_at,
-        p.model_revision, p.y_hat, d.actual,
+        p.model_revision, p.y_hat, d.actual, d.n_intervals,
+        -- The baseline to beat: "tomorrow will be like today", i.e. the day
+        -- before the target. LEFT JOIN because the day before the first day
+        -- in the table has no price, and a missing baseline is not a reason
+        -- to drop an otherwise scorable day.
+        prev.actual AS naive_y_hat,
         abs(p.y_hat - d.actual) AS abs_error
     FROM chosen_predictions p
     JOIN daily_prices d
       ON d.price_date = p.target_date
+    LEFT JOIN daily_prices prev
+      ON prev.price_date = p.target_date - 1
 )
 SELECT * FROM scored
 ORDER BY target_date
@@ -75,10 +83,52 @@ def score(conn) -> list[dict]:
         return [dict(zip(columns, row, strict=True)) for row in cur.fetchall()]
 
 
+STORE_SQL = """
+    INSERT INTO monitor__daily (
+        price_area, target_date, prediction_id, predicted_at,
+        model_revision, y_hat, actual, naive_y_hat, n_intervals
+    ) VALUES %s
+    ON CONFLICT (price_area, target_date) DO UPDATE SET
+        prediction_id  = EXCLUDED.prediction_id,
+        predicted_at   = EXCLUDED.predicted_at,
+        model_revision = EXCLUDED.model_revision,
+        y_hat          = EXCLUDED.y_hat,
+        actual         = EXCLUDED.actual,
+        naive_y_hat    = EXCLUDED.naive_y_hat,
+        n_intervals    = EXCLUDED.n_intervals,
+        scored_at      = now()
+"""
+
+
+def store(conn, rows: list[dict]) -> int:
+    """Write the grades to monitor__daily, one row per scored day.
+
+    error, abs_error and naive_abs_error are not inserted: they are
+    generated columns, so the arithmetic lives in the schema and cannot
+    drift away from what this script believes it computed.
+    """
+    if not rows:
+        return 0
+
+    values = [
+        (
+            r["price_area"], r["target_date"], r["prediction_id"],
+            r["predicted_at"], r["model_revision"], r["y_hat"],
+            r["actual"], r["naive_y_hat"], r["n_intervals"],
+        )
+        for r in rows
+    ]
+    with conn.cursor() as cur:
+        execute_values(cur, STORE_SQL, values)
+    conn.commit()
+    return len(values)
+
+
 def main() -> None:
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
     try:
         rows = score(conn)
+        n_stored = store(conn, rows)
     finally:
         conn.close()
 
@@ -99,6 +149,7 @@ def main() -> None:
     print(f"\n{len(rows)} scored days   MAE {mae:.4f} SEK/kWh")
     print(f"worst day {worst['target_date']}  "
           f"off by {float(worst['abs_error']):.4f}")
+    print(f"wrote {n_stored} rows to monitor__daily")
 
 
 if __name__ == "__main__":
