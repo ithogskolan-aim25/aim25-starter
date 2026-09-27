@@ -21,3 +21,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PRICE_AREA: ${{ vars.PRICE_AREA }}
+      - run: uv run python monitor_reference.py
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PRICE_AREA: ${{ vars.PRICE_AREA }}
