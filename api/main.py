@@ -29,7 +29,7 @@ from __future__ import annotations
 import os
 import pickle
 from contextlib import asynccontextmanager
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -175,17 +175,22 @@ def health() -> dict:
 
 @app.get("/predict")
 def predict(target_date: date | None = None) -> dict:
-    """Predict the price for one day. Defaults to today.
+    """Predict the price for one day. Defaults to tomorrow.
 
-    Pass ?target_date=2026-09-22 to ask for another day -- tomorrow to get a
-    real forecast, or any past day to check the model against an outcome it
-    has already been graded on.
+    Tomorrow is the default because it is the only answer that is actually a
+    prediction. A call for today produces a number for a price that was
+    published around 13:00 yesterday, and monitor_reference.py will refuse
+    to score it -- it only grades predictions made before their target day
+    began. Predicting today is useful for a demo, not for a track record.
+
+    Pass ?target_date=2026-09-22 for any other day, including past days to
+    check the model against outcomes it has already been graded on.
     """
     if not PAYLOAD:
         raise HTTPException(503, f"Model not loaded: {LOAD_ERROR}")
 
     if target_date is None:
-        target_date = datetime.now(STOCKHOLM).date()
+        target_date = datetime.now(STOCKHOLM).date() + timedelta(days=1)
 
     row = feature_row(target_date)
     if row is None:
