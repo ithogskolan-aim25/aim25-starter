@@ -4,26 +4,11 @@ Score yesterday's predictions against what the price actually turned out to be.
     uv run python monitor_reference.py
 
 Add it to the daily workflow after the feature pipeline, and every morning
-it tells you how the model did on the days that have now settled.
+it tells you how the model did on the days that have now been settled.
 
-The SQL below answers one question: for each finished day, what did we
-predict BEFORE that day began, and what was the price really? Two details
-in it carry the whole idea.
-
-`predicted_at < target_date midnight` is the no-peeking rule. pred__log
-contains backfilled and re-run predictions made after the fact, and those
-are not predictions -- scoring them would flatter the model with knowledge
-it did not have. This is the same information boundary as in train.py,
-enforced at scoring time instead of training time.
-
-`DISTINCT ON (target_date) ... ORDER BY predicted_at DESC` then keeps one
-prediction per day: the last one made while it was still a forecast. Run
-the service five times in an evening and the day is still scored once.
-
-Edge cases are deliberately not handled -- a day with partial prices is
+Edge cases are deliberately not handled. A day with partial prices is
 averaged over whatever intervals arrived, and a day with no qualifying
-prediction simply does not appear. Good enough to watch a model drift;
-not good enough to bill anyone on.
+prediction simply does not appear.
 """
 
 from __future__ import annotations
