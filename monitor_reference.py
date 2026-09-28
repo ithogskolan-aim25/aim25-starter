@@ -44,10 +44,6 @@ scored AS (
     SELECT
         p.price_area, p.target_date, p.prediction_id, p.predicted_at,
         p.model_revision, p.y_hat, d.actual, d.n_intervals,
-        -- The baseline to beat: "tomorrow will be like today", i.e. the day
-        -- before the target. LEFT JOIN because the day before the first day
-        -- in the table has no price, and a missing baseline is not a reason
-        -- to drop an otherwise scorable day.
         prev.actual AS naive_y_hat,
         abs(p.y_hat - d.actual) AS abs_error
     FROM chosen_predictions p
